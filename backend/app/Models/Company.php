@@ -15,12 +15,14 @@ class Company extends Model
         'phones',
         'emails',
         'working_datetime',
+        'social_media',
     ];
 
     protected $casts = [
         'phones'           => 'array',
         'emails'           => 'array',
         'working_datetime' => 'array',
+        'social_media'     => 'array',
     ];
 
     protected $appends = ['logo_url'];

@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ChevronLeft, ChevronRight, ChefHat, LogOut,
   Tag, UtensilsCrossed, ShieldCheck, Users, User as UserIcon,
-  Building2,
+  Building2,MessageSquare,
+  CalendarClock,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -19,6 +20,8 @@ const navItems = [
   { href: '/admin/plates', label: 'Plates', icon: UtensilsCrossed },
   { href: '/admin/admins', label: 'Admins', icon: ShieldCheck },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/reservations', label: 'Reservations', icon: CalendarClock },
+  { href: '/admin/contact-messages', label: 'Contact Messages', icon: MessageSquare },
   { href: '/admin/company', label: 'Company', icon: Building2 },
 ];
 

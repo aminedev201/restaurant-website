@@ -20,6 +20,7 @@ class CompanyController extends Controller
 
         return response()->json([
             'status' => true,
+            'message' => 'Company info fetched successfully.',
             'data'   => $company,
         ]);
     }

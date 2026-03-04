@@ -119,9 +119,9 @@ class PlateController extends Controller
             if ($plate->image_path && Storage::disk('public')->exists($plate->image_path)) {
                 Storage::disk('public')->delete($plate->image_path);
             }
+            $plate->delete();
         }
 
-        Plate::truncate();
 
         return response()->json([
             'success' => true,

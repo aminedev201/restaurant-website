@@ -131,9 +131,8 @@ class CategoryController extends Controller
             if ($category->image_path && Storage::disk('public')->exists($category->image_path)) {
                 Storage::disk('public')->delete($category->image_path);
             }
+            $category->delete();
         }
-
-        Category::truncate();
 
         return response()->json([
             'success' => true,

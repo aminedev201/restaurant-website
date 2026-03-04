@@ -4,10 +4,10 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { Toaster } from 'react-hot-toast';
-import { CompanyProvider } from '@/context/CompanyContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 
 export const metadata: Metadata = {
-  title: { default: 'La Maison Restaurant', template: '%s | La Maison' },
+  // title: { default: 'Restaurant', template: '%s | La Maison' },
   description: 'An intimate dining experience where tradition meets modern gastronomy.',
   keywords: ['restaurant', 'fine dining', 'reservation', 'Rabat', 'La Maison'],
   openGraph: {
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
           <AuthProvider>
-            <CompanyProvider>
+            <FavoritesProvider>
               <CartProvider>
                 {children}
                 <Toaster
@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   }}
                 />
               </CartProvider>
-            </CompanyProvider>
+            </FavoritesProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import BookingClient from './BookingClient';
+import BookingClient from './ReservationTableClient';
 
 export const metadata: Metadata = {
   title: 'Reserve a Table',

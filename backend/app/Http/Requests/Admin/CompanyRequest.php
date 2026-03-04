@@ -23,6 +23,8 @@ class CompanyRequest extends FormRequest
             'emails'           => 'nullable|array',
             'emails.*'         => 'required|email|max:255',
             'working_datetime' => 'nullable|json',
+            'social_media'     => 'nullable|json',
+            'social_media.*'   => 'nullable|url|max:2000',
         ];
     }
 

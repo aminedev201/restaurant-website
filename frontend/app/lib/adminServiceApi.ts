@@ -2,7 +2,6 @@
 
 import api from './api';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -10,6 +9,17 @@ export interface WorkingDay {
   open: string;   // "09:00"
   close: string;  // "18:00"
   closed?: boolean;
+}
+
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: 'unread' | 'read';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Company {
@@ -22,6 +32,7 @@ export interface Company {
   phones: string[] | null;
   emails: string[] | null;
   working_datetime: Record<string, WorkingDay> | null;
+  social_media?: Record<string, string> | string | null;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +77,35 @@ export interface User {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+}
+
+
+export interface Reservation {
+  id: number;
+  user_id: number;
+  date: string;           // "YYYY-MM-DD"
+  time: string;           // "HH:MM:SS"
+  guests: number;         // 1–4
+  status: 'pending' | 'confirmed' | 'canceled';
+  special_requests: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReservationPayload {
+  date: string;           // "YYYY-MM-DD"
+  time: string;           // "HH:MM"
+  guests: number;
+  special_requests?: string;
+}
+
+
+export interface ReservationWithUser extends Reservation {
+  user: {
+    id: number;
+    fullname: string;
+    email: string;
+  };
 }
 
 export interface ApiResponse<T> {
@@ -261,8 +301,6 @@ export const profileApi = {
 
 // ─── Company endpoints ────────────────────────────────────────────────────────
 
-// ─── Company endpoints ────────────────────────────────────────────────────────
-
 export const companyApi = {
   /** GET /admin/company */
   get: () =>
@@ -283,4 +321,57 @@ export const companyApi = {
   /** DELETE /admin/company/logo — remove logo */
   deleteLogo: () =>
     api.delete<ApiResponse<Company>>('/admin/company/logo').then(r => r.data),
+};
+
+// ─── Contact Message endpoints ────────────────────────────────────────────────────────
+
+export const contactMessagesApi = {
+  /** GET /admin/contact-messages */
+  getAll: () =>
+    api.get<ApiResponse<ContactMessage[]>>('/admin/contact-messages').then(r => r.data),
+
+  /** GET /admin/contact-messages/{id}/read */
+  read: (id: number) =>
+    api.post<ApiResponse<ContactMessage>>(`/admin/contact-messages/${id}/read`).then(r => r.data),
+
+  /** GET /admin/contact-messages/{id}*/
+  show: (id: number) =>
+    api.get<ApiResponse<ContactMessage>>(`/admin/contact-messages/${id}`).then(r => r.data),
+
+  /** DELETE /admin/contact-messages/{id} */
+  destroy: (id: number) =>
+    api.delete<ApiResponse<null>>(`/admin/contact-messages/${id}`).then(r => r.data),
+
+  /** DELETE /admin/contact-messages/destroy-selected */
+  destroySelected: (ids: number[]) =>
+    api.delete<ApiResponse<{ deleted_count: number }>>('/admin/contact-messages/destroy-selected', {
+      data: { ids },
+    }).then(r => r.data),
+};
+
+// ─── Reservation endpoints ────────────────────────────────────────────────────────
+
+export const ReservationApi = {
+  /** GET /admin/reservations */
+  getAll: (params?: { status?: string; date?: string }) =>
+    api.get<ApiResponse<ReservationWithUser[]>>('/admin/reservations', { params }).then(r => r.data),
+
+  /** GET /admin/reservations/{id} */
+  show: (id: number) =>
+    api.get<ApiResponse<ReservationWithUser>>(`/admin/reservations/${id}`).then(r => r.data),
+
+  /** PATCH /admin/reservations/{id} */
+  update: (id: number, data: Partial<ReservationPayload & { status: Reservation['status'] }>) =>
+    api.patch<ApiResponse<ReservationWithUser>>(`/admin/reservations/${id}`, data).then(r => r.data),
+
+  /** DELETE /admin/reservations/{id} */
+  destroy: (id: number) =>
+    api.delete<ApiResponse<null>>(`/admin/reservations/${id}`).then(r => r.data),
+
+  /** DELETE /admin/reservations/destroy-selected */
+  destroySelected: (ids: number[]) =>
+    api.delete<ApiResponse<{ deleted_count: number }>>('/admin/reservations/destroy-selected', {
+      data: { ids },
+    }).then(r => r.data),
+
 };

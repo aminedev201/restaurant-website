@@ -22,12 +22,36 @@ const DAY_LABELS: Record<string, string> = {
 type DaySchedule = { open: string; close: string; closed: boolean };
 type Schedule    = Record<string, DaySchedule>;
 
+const SOCIAL_KEYS = ['facebook', 'twitter', 'youtube', 'instagram', 'whatsapp', 'tiktok'] as const;
+type SocialKey = typeof SOCIAL_KEYS[number];
+
+const SOCIAL_LABELS: Record<SocialKey, string> = {
+  facebook:  'Facebook',
+  twitter:   'Twitter / X',
+  youtube:   'YouTube',
+  instagram: 'Instagram',
+  whatsapp:  'WhatsApp',
+  tiktok:    'TikTok',
+};
+
+const SOCIAL_PLACEHOLDERS: Record<SocialKey, string> = {
+  facebook:  'https://facebook.com/yourpage',
+  twitter:   'https://x.com/yourhandle',
+  youtube:   'https://youtube.com/@yourchannel',
+  instagram: 'https://instagram.com/yourhandle',
+  whatsapp:  'https://wa.me/1234567890',
+  tiktok:    'https://tiktok.com/@yourhandle',
+};
+
+const defaultSocial = (): Record<SocialKey, string> => ({
+  facebook: '', twitter: '', youtube: '', instagram: '', whatsapp: '', tiktok: '',
+});
+
 const defaultSchedule = (): Schedule =>
   Object.fromEntries(
     DAYS.map(d => [d, { open: '09:00', close: '22:00', closed: false }])
   );
 
-// ✅ NEW: safely parse whether API returns a string or already-parsed object
 const parseWorkingDatetime = (raw: unknown): Schedule | null => {
   if (!raw) return null;
   try {
@@ -46,12 +70,13 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
   const [phones, setPhones]           = useState<string[]>(['']);
   const [emails, setEmails]           = useState<string[]>(['']);
   const [schedule, setSchedule]       = useState<Schedule>(defaultSchedule());
+  const [social, setSocial]           = useState<Record<SocialKey, string>>(defaultSocial());
   const [logo, setLogo]               = useState<File | null>(null);
   const [preview, setPreview]         = useState<string | null>(null);
   const [errors, setErrors]           = useState<Record<string, string>>({});
   const [loading, setLoading]         = useState(false);
   const fileRef                       = useRef<HTMLInputElement>(null);
-  const { refreshCompany }            = useCompany(); 
+  const { refreshCompany }            = useCompany();
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +88,6 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
       setEmails(company.emails?.length ? company.emails : ['']);
       setPreview(company.logo_url ?? null);
 
-      // ✅ FIXED: parse working_datetime safely (handles both string & object)
       const parsedSchedule = parseWorkingDatetime(company.working_datetime);
       setSchedule(
         parsedSchedule
@@ -75,10 +99,29 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
             ) as Schedule
           : defaultSchedule()
       );
+
+     const rawSm = company.social_media;
+      const sm = (
+        rawSm
+          ? typeof rawSm === 'string'
+            ? (() => { try { return JSON.parse(rawSm); } catch { return {}; } })()
+            : rawSm
+          : {}
+      ) as Partial<Record<SocialKey, string>>;
+      
+      setSocial({
+        facebook:  sm.facebook  ?? '',
+        twitter:   sm.twitter   ?? '',
+        youtube:   sm.youtube   ?? '',
+        instagram: sm.instagram ?? '',
+        whatsapp:  sm.whatsapp  ?? '',
+        tiktok:    sm.tiktok    ?? '',
+      });
     } else {
       setName(''); setAddress(''); setLocationUrl('');
       setPhones(['']); setEmails(['']);
       setPreview(null); setSchedule(defaultSchedule());
+      setSocial(defaultSocial());
     }
     setLogo(null); setErrors({});
   }, [open, company]);
@@ -107,6 +150,11 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
         errs[`emails.${i}`] = `Email ${i + 1} is not a valid email address.`;
       else if (e.length > 255)
         errs[`emails.${i}`] = `Email ${i + 1} must not exceed 255 characters.`;
+    });
+    SOCIAL_KEYS.forEach(key => {
+      const val = social[key].trim();
+      if (val && !/^https?:\/\/.+/.test(val))
+        errs[`social_media.${key}`] = `${SOCIAL_LABELS[key]} must be a valid URL starting with http(s)://`;
     });
     return errs;
   };
@@ -140,6 +188,11 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
   const updateDay = (day: string, field: keyof DaySchedule, value: string | boolean) =>
     setSchedule(s => ({ ...s, [day]: { ...s[day], [field]: value } }));
 
+  const updateSocial = (key: SocialKey, val: string) => {
+    setSocial(s => ({ ...s, [key]: val }));
+    setErrors(p => ({ ...p, [`social_media.${key}`]: '' }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
@@ -154,6 +207,12 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
       phones.filter(Boolean).forEach((p, i) => fd.append(`phones[${i}]`, p));
       emails.filter(Boolean).forEach((e, i) => fd.append(`emails[${i}]`, e));
       fd.append('working_datetime', JSON.stringify(schedule));
+
+      const socialPayload = Object.fromEntries(
+        Object.entries(social).filter(([, v]) => v.trim())
+      );
+      fd.append('social_media', JSON.stringify(socialPayload));
+
       await companyApi.save(fd);
       onSuccess();
       refreshCompany();
@@ -343,6 +402,32 @@ export default function EditCompanyModal({ open, company, onClose, onSuccess }: 
                             onChange={e => updateDay(day, 'close', e.target.value)}
                             className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-brand-500" />
                         </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Social Media */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Social Media Links
+                </label>
+                <div className="space-y-3">
+                  {SOCIAL_KEYS.map(key => (
+                    <div key={key}>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        {SOCIAL_LABELS[key]}
+                      </label>
+                      <input
+                        type="url"
+                        value={social[key]}
+                        onChange={e => updateSocial(key, e.target.value)}
+                        placeholder={SOCIAL_PLACEHOLDERS[key]}
+                        className={inputCls(errors[`social_media.${key}`])}
+                      />
+                      {errors[`social_media.${key}`] && (
+                        <p className="text-xs text-red-500 mt-1">{errors[`social_media.${key}`]}</p>
                       )}
                     </div>
                   ))}

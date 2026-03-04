@@ -26,15 +26,16 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
 }
 
 export default function PlatesClient() {
-  const [plates, setPlates]             = useState<Plate[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [sortKey, setSortKey]           = useState<SortKey>('created_at');
-  const [sortDir, setSortDir]           = useState<SortDir>('desc');
-  const [page, setPage]                 = useState(1);
-  const [perPage, setPerPage]           = useState<number>(5);
-  const [selected, setSelected]         = useState<number[]>([]);
+  const [plates, setPlates]                 = useState<Plate[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [search, setSearch]                 = useState('');
+  const [statusFilter, setStatusFilter]     = useState<'all' | 'active' | 'inactive'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | number>('all');
+  const [sortKey, setSortKey]               = useState<SortKey>('created_at');
+  const [sortDir, setSortDir]               = useState<SortDir>('desc');
+  const [page, setPage]                     = useState(1);
+  const [perPage, setPerPage]               = useState<number>(5);
+  const [selected, setSelected]             = useState<number[]>([]);
 
   // Modals
   const [showCreate, setShowCreate]                 = useState(false);
@@ -61,6 +62,17 @@ export default function PlatesClient() {
 
   useEffect(() => { fetchPlates(); }, [fetchPlates]);
 
+  // ─── Unique categories derived from plates ────────────────────────────────
+  const categories = useMemo(() => {
+    const seen = new Map<number, string>();
+    plates.forEach(p => {
+      if (p.category?.id != null && !seen.has(p.category.id)) {
+        seen.set(p.category.id, p.category.name);
+      }
+    });
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+  }, [plates]);
+
   // ─── Sort + Filter + Paginate ─────────────────────────────────────────────
   const processed = useMemo(() => {
     let data = [...plates];
@@ -78,6 +90,10 @@ export default function PlatesClient() {
       data = data.filter(p => statusFilter === 'active' ? p.status : !p.status);
     }
 
+    if (categoryFilter !== 'all') {
+      data = data.filter(p => p.category?.id === categoryFilter);
+    }
+
     data.sort((a, b) => {
       const av = sortKey === 'price' ? a.price : String(a[sortKey] ?? '');
       const bv = sortKey === 'price' ? b.price : String(b[sortKey] ?? '');
@@ -88,7 +104,7 @@ export default function PlatesClient() {
     });
 
     return data;
-  }, [plates, search, statusFilter, sortKey, sortDir]);
+  }, [plates, search, statusFilter, categoryFilter, sortKey, sortDir]);
 
   const totalPages = Math.ceil(processed.length / perPage);
   const pageItems  = processed.slice((page - 1) * perPage, page * perPage);
@@ -184,6 +200,7 @@ export default function PlatesClient() {
       {/* Filters */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-2 my-2 w-full">
         <div className="flex flex-col sm:flex-row gap-3">
+
           {/* Search */}
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -191,6 +208,18 @@ export default function PlatesClient() {
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-brand-400 dark:focus:border-brand-500 transition-colors" />
           </div>
+
+          {/* Category filter */}
+          <select
+            value={categoryFilter}
+            onChange={e => { setCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value)); setPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white outline-none focus:border-brand-400 dark:focus:border-brand-500 transition-colors shrink-0"
+          >
+            <option value="all">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
 
           {/* Status filter pills */}
           <div className="flex items-center gap-1 p-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
@@ -241,7 +270,9 @@ export default function PlatesClient() {
               <AlertCircle size={24} className="text-gray-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 font-medium">No plates found</p>
-            {search && <p className="text-sm text-gray-400">Try adjusting your search query</p>}
+            {(search || categoryFilter !== 'all') && (
+              <p className="text-sm text-gray-400">Try adjusting your filters</p>
+            )}
             <button onClick={() => setShowCreate(true)} className="mt-1 text-sm text-brand-500 hover:text-brand-600 font-medium">
               + Create a new plate
             </button>

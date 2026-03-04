@@ -1,19 +1,44 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
+// Admin
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\CompanyController;
 use App\Http\Controllers\Api\Admin\PlateController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Admin\ContactMessageController as AdminContactMessageController;
+use App\Http\Controllers\Api\Admin\ReservationController as AdminReservationController;
+
+// User
+use App\Http\Controllers\Api\User\ReservationController as UserReservationController;
+
+//Guest
 use App\Http\Controllers\Api\Auth\AuthController;
-use Illuminate\Support\Facades\Route;
+
+// Public
+use App\Http\Controllers\Api\CompanyController as PublicCompanyController;
+use App\Http\Controllers\Api\ContactMessageController as PublicContactMessageController;
+use App\Http\Controllers\Api\MenuController as PublicMenuController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Public
+// Get Comapny Info
+Route::prefix( 'public/')->group(function () {
+    Route::prefix( 'menu')->group(function () {
+        Route::get('/',  [PublicMenuController::class, 'getMenu']);
+        Route::get('/{id}', [PublicMenuController::class, 'getPlateDetails']);
+    });
+    Route::get('company', [PublicCompanyController::class, 'getCompanyInfo']);
+    Route::post('contact', [PublicContactMessageController::class, 'store']);
+});
 
 Route::middleware('guest:sanctum')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -27,7 +52,6 @@ Route::middleware('guest:sanctum')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/validate-reset-token', action: [AuthController::class, 'validateResetToken']);
-
 });
 
 // Protected routes with authentication, email verification, and active status check
@@ -76,6 +100,34 @@ Route::middleware(['auth:sanctum', 'verified', 'user.status'])->group(function (
             Route::post('/logo',    [CompanyController::class, 'changeLogo']);
             Route::delete('/logo',  [CompanyController::class, 'deleteLogo']);
         });
+        // Contact Messages
+        Route::prefix('contact-messages')->group(function () {
+            Route::get('/',        [AdminContactMessageController::class, 'index']);
+            Route::delete('/destroy-selected', [AdminContactMessageController::class, 'destroySelected']);
+            Route::get('/{contactMessage}',    [AdminContactMessageController::class, 'show']);
+            Route::delete('/{contactMessage}', [AdminContactMessageController::class, 'destroy']);
+            Route::post('/{contactMessage}/read',[AdminContactMessageController::class, 'read']);
+        });
+        // Reservation Table
+        Route::prefix('reservations')->group(function () {
+            Route::get('/',                          [AdminReservationController::class, 'index']);
+            Route::delete('/destroy-selected',       [AdminReservationController::class, 'destroySelected']);
+            Route::get('/{reservation}',             [AdminReservationController::class, 'show']);
+            Route::patch('/{reservation}',           [AdminReservationController::class, 'update']);
+            Route::delete('/{reservation}',          [AdminReservationController::class, 'destroy']);
+        });
     });
 
+    // User
+     Route::middleware('role:user')->prefix('user/')->group(function () {
+        // Reservation tables
+            Route::prefix('reservations')->group(function () {
+                Route::get('/',                [UserReservationController::class, 'index']);
+                Route::post('/',               [UserReservationController::class, 'store']);
+                Route::delete('/{reservation}',[UserReservationController::class, 'destroy']);
+            });
+     });
+
 });
+
+
