@@ -27,7 +27,7 @@ export default function GuestNavbar() {
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuth();
   const { count: cartCount } = useCart();
-  const { count: favCount }  = useFavorites();
+  const { count: favCount, toggleDrawer: toggleFavDrawer } = useFavorites();
   const isHome = pathname === '/';
 
   useEffect(() => {
@@ -110,8 +110,8 @@ export default function GuestNavbar() {
           <ThemeToggle />
 
           {/* Favorites */}
-          <Link
-            href="/menu"
+          <button
+            onClick={toggleFavDrawer}
             className={`relative w-9 h-9 flex items-center justify-center rounded-full transition-colors
               hover:bg-brand-100/20 dark:hover:bg-white/10 ${textColor}`}
             aria-label="Favorites"
@@ -122,10 +122,11 @@ export default function GuestNavbar() {
                 {favCount}
               </span>
             )}
-          </Link>
+          </button>
 
           {/* Cart */}
-          <button
+          <Link
+            href="/cart"
             className={`relative w-9 h-9 flex items-center justify-center rounded-full transition-colors
               hover:bg-brand-100/20 dark:hover:bg-white/10 ${textColor}`}
             aria-label="Cart"
@@ -136,7 +137,7 @@ export default function GuestNavbar() {
                 {cartCount}
               </span>
             )}
-          </button>
+          </Link>
 
           {/* Auth button */}
           {isAuthenticated ? (

@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { menuApi, MenuCategory, Plate } from '@/lib/publicService.Api';
 import { useFavorites } from '@/context/FavoritesContext';
+import { menuApi, MenuCategory, Plate } from '@/lib/publicService.Api';
 
 // ─── Auth-gate toast ──────────────────────────────────────────────────────────
 function AuthNotice({ onClose, onLogin }: { onClose: () => void; onLogin: () => void }) {
@@ -59,7 +59,7 @@ function SkeletonCard() {
 // ─── Plate card ───────────────────────────────────────────────────────────────
 function PlateCard({
   plate,
-  onAuthRequired,short_desc
+  onAuthRequired,
 }: {
   plate: Plate;
   onAuthRequired: () => void;
@@ -68,7 +68,7 @@ function PlateCard({
   const { addItem, items, updateQty, removeItem } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
 
-  const qty = items.find(i => i.menuItem.id === plate.id)?.quantity ?? 0;
+  const qty = items.find(i => i.plate.id === plate.id)?.quantity ?? 0;
   const fav = isFavorite(plate.id);
   const hasDiscount = plate.discount > 0 && plate.old_price != null;
 
@@ -76,15 +76,6 @@ function PlateCard({
     if (!isAuthenticated) { onAuthRequired(); return; }
     action();
   };
-
-  const toMenuItem = () => ({
-    id: plate.id,
-    name: plate.name,
-    description: plate.short_desc,
-    price: plate.price,
-    category: '',
-    available: plate.status,
-  });
 
   return (
     <div className="group relative flex flex-col rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
@@ -158,7 +149,7 @@ function PlateCard({
         {/* Cart controls */}
         {qty === 0 ? (
           <button
-            onClick={() => guard(() => addItem(toMenuItem()))}
+            onClick={() => guard(() => addItem(plate))}
             className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm rounded-xl transition-colors font-semibold"
           >
             <ShoppingCart size={14} />
@@ -226,7 +217,7 @@ export default function MenuClient() {
         const plates = cat.plates.filter(p =>
           !q ||
           p.name.toLowerCase().includes(q) ||
-          p.short_desc?.toLowerCase().includes(q),
+          p.short_desc.toLowerCase().includes(q),
         );
 
         // Also include entire category if category name matches

@@ -44,4 +44,20 @@ class Plate extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    /**
+     * The users who have favorited this plate.
+     */
+    public function favoritedByUsers()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'user_favorites',
+            'plate_id',
+            'user_id'
+        )->withTimestamps();
+    }
+
+
+
 }

@@ -85,14 +85,12 @@ export default function PlateDetailClient({ id }: { id: number }) {
     setError(false);
     try {
       const res = await menuApi.getPlateDetails(id);
-      // API returned status:false or missing data (plate not found / inactive)
       if (!res.status || !res.data) {
         router.replace('/menu');
         return;
       }
       setPlate(res.data);
     } catch (err: any) {
-      // HTTP 404 → redirect silently; any other error → show error state
       if (err?.response?.status === 404) {
         router.replace('/menu');
         return;
@@ -105,7 +103,7 @@ export default function PlateDetailClient({ id }: { id: number }) {
 
   useEffect(() => { fetchPlate(); }, [fetchPlate]);
 
-  const qty   = plate ? (items.find(i => i.menuItem.id === plate.id)?.quantity ?? 0) : 0;
+  const qty   = plate ? (items.find(i => i.plate.id === plate.id)?.quantity ?? 0) : 0;
   const fav   = plate ? isFavorite(plate.id) : false;
   const hasDiscount = plate && plate.discount > 0 && plate.old_price != null;
 
@@ -119,18 +117,36 @@ export default function PlateDetailClient({ id }: { id: number }) {
     action();
   };
 
-  const toMenuItem = () => plate ? {
-    id: plate.id,
-    name: plate.name,
-    description: plate.short_desc,
-    price: plate.price,
-    category: plate.category?.name ?? '',
-    available: plate.status,
-  } : null;
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-16">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+
+      {/* ── Hero with background image ── */}
+      <div className="relative bg-gray-800 text-white pb-24 pt-36 text-center overflow-hidden">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-20"
+          style={{ backgroundImage: "url('/imgs/plate-details.jpg')" }}
+        />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-950/60 via-gray-950/40 to-gray-950/80" />
+        {/* Content */}
+        <div className="relative z-10">
+          {plate?.category && (
+            <p className="text-brand-400 uppercase tracking-widest text-sm mb-3 font-medium">
+              {plate.category.name}
+            </p>
+          )}
+          <h1 className="font-display text-4xl md:text-6xl font-bold mb-4">
+            {loading ? 'Loading…' : (plate?.name ?? 'Dish Details')}
+          </h1>
+          {plate?.short_desc && (
+            <p className="text-gray-300 text-base max-w-md mx-auto">
+              {plate.short_desc}
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Back bar */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
@@ -258,7 +274,7 @@ export default function PlateDetailClient({ id }: { id: number }) {
                 {/* Cart */}
                 {qty === 0 ? (
                   <button
-                    onClick={() => { const m = toMenuItem(); if (m) guard(() => addItem(m)); }}
+                    onClick={() => { if (plate) guard(() => addItem(plate)); }}
                     className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
                   >
                     <ShoppingCart size={16} />

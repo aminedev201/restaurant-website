@@ -80,4 +80,24 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $this->notify(new ResetPasswordNotification($token));
     }
+
+     // ─── Relationships ────────────────────────────────────────────────────────
+
+     /**
+     * The plates this user has favorited.
+     */
+    public function favoritePlates()
+    {
+        return $this->belongsToMany(
+            Plate::class,
+            'user_favorites',
+            'user_id',
+            'plate_id'
+        )->withTimestamps();
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

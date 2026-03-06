@@ -108,6 +108,60 @@ export interface ReservationWithUser extends Reservation {
   };
 }
 
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'preparing'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled';
+
+export type PaymentStatus = 'pending' | 'paid' | 'failed';
+export type PaymentMethod = 'cod' | 'stripe';
+
+export interface OrderPlate {
+  id: number;
+  order_id: number;
+  plate_id: number | null;
+  plate_name: string;
+  category_name: string | null;
+  plate_price: number;
+  plate_old_price: number | null;
+  discount: number;
+  quantity: number;
+  total: number;
+}
+
+export interface OrderUser {
+  id: number;
+  fullname: string;
+  email: string;
+  phone: string;
+}
+
+export interface Order {
+  id: number;
+  user_id: number;
+  user: OrderUser;
+  order_number: string;
+  delivery_address: string;
+  status: OrderStatus;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  stripe_payment_intent_id: string | null;
+  shipping: number;
+  final_total: number;
+  order_plates: OrderPlate[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Settings {
+  id: number;
+  shipping: number;
+  updated_at: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -374,4 +428,36 @@ export const ReservationApi = {
       data: { ids },
     }).then(r => r.data),
 
+};
+
+
+
+export const orderAdminApi = {
+  /** GET /admin/orders */
+  getAll: (params?: { status?: string; payment_status?: string; payment_method?: string }) =>
+    api.get<{ success: boolean; message: string; data: Order[] }>('/admin/orders', { params }).then(r => r.data),
+
+  /** GET /admin/orders/:id */
+  show: (id: number) =>
+    api.get<{ success: boolean; message: string; data: Order }>(`/admin/orders/${id}`).then(r => r.data),
+
+  /** PATCH /admin/orders/:id/status */
+  updateStatus: (id: number, status: OrderStatus) =>
+    api.patch<{ success: boolean; message: string; data: Order }>(`/admin/orders/${id}/status`, { status }).then(r => r.data),
+
+  /** PATCH /admin/orders/:id/payment-status */
+  updatePaymentStatus: (id: number, payment_status: PaymentStatus) =>
+    api.patch<{ success: boolean; message: string; data: Order }>(`/admin/orders/${id}/payment-status`, { payment_status }).then(r => r.data),
+};
+
+// ─── Settings endpoints ───────────────────────────────────────────────────────
+
+export const settingsAdminApi = {
+  /** GET /admin/settings */
+  get: () =>
+    api.get<ApiResponse<Settings>>('/admin/settings').then(r => r.data),
+
+  /** POST /admin/settings */
+  update: (shipping: number) =>
+    api.post<ApiResponse<Settings>>('/admin/settings', { shipping }).then(r => r.data),
 };

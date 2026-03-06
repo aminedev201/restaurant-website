@@ -5,12 +5,13 @@ import Cookies from 'js-cookie';
 import { User, AuthState, LoginCredentials, RegisterData, ApiResponse } from '@/types';
 import { secureSet, secureGet, secureRemove } from '@/lib/encryption';
 import api from '@/lib/api';
+import { STORAGE_KEY, useCart } from './CartContext';
 
 interface AuthContextType extends AuthState {
   login: (c: LoginCredentials) => Promise<ApiResponse<{ user: User; access_token: string }>>;
   register: (d: RegisterData) => Promise<ApiResponse<{ user: User }>>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;                                                          
+  refreshUser: () => Promise<void>;
   forgotPassword: (email: string) => Promise<ApiResponse<null>>;
   resetPassword: (d: { token: string; email: string; password: string; password_confirmation: string }) => Promise<ApiResponse<null>>;
   resendVerification: (email: string) => Promise<ApiResponse<null>>;
@@ -20,8 +21,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, token: null, isAuthenticated: false, isLoading: true });
-
-  useEffect(() => {
+  const { clearCart } = useCart();
+  
+   useEffect(() => {
     (async () => {
       const token = Cookies.get('auth_token');
       if (token) {
@@ -58,7 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Cookies.remove('auth_token');
     secureRemove('user_info');
     secureRemove('admin_info');
-    setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+    // Clear cart data on logout so it doesn't persist across accounts
+    clearCart();
   }, []);
 
   // ── Re-fetches the authenticated user from the API and updates state + storage ──

@@ -76,6 +76,15 @@ export interface MenuCategory {
   plates: Plate[];
 }
 
+// ─── Settings Types & Endpoints ───────────────────────────────────────────────
+
+export interface Settings {
+  id: number;
+  shipping: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiResponse<T> {
   status: boolean;
   message: string;
@@ -108,4 +117,12 @@ export const menuApi = {
   /** GET /public/menu/:id — returns a single plate with its category */
   getPlateDetails: (id: number) =>
     api.get<ApiResponse<PlateWithCategory>>(`/public/menu/${id}`).then(r => r.data),
+};
+
+// ─── Settings Endpoints ───────────────────────────────────────────────
+
+export const settingsApi = {
+  /** GET /public/settings */
+  get: () =>
+    api.get<ApiResponse<Settings>>('/public/settings').then(r => r.data),
 };

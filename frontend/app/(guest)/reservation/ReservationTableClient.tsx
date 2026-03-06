@@ -9,7 +9,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { parseApiErrors } from '@/lib/parseApiErrors';
 import { Company, companyApi, WorkingDay } from '@/lib/publicService.Api';
-import { reservationApi } from '@/lib/UserServiceApi';
+import { reservationApi } from '@/lib/userServiceApi';
 
 // ── Day helpers ────────────────────────────────────────────────────────────────
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;

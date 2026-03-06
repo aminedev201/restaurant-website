@@ -7,7 +7,8 @@ import {
   LayoutDashboard, ChevronLeft, ChevronRight, ChefHat, LogOut,
   Tag, UtensilsCrossed, ShieldCheck, Users, User as UserIcon,
   Building2,MessageSquare,
-  CalendarClock,
+  CalendarClock,ClipboardList, 
+  Settings2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -18,11 +19,13 @@ const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
   { href: '/admin/plates', label: 'Plates', icon: UtensilsCrossed },
+  { href: '/admin/orders', label: 'Orders', icon: ClipboardList  },
+  { href: '/admin/reservations', label: 'Reservations', icon: CalendarClock },
   { href: '/admin/admins', label: 'Admins', icon: ShieldCheck },
   { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/reservations', label: 'Reservations', icon: CalendarClock },
   { href: '/admin/contact-messages', label: 'Contact Messages', icon: MessageSquare },
   { href: '/admin/company', label: 'Company', icon: Building2 },
+  { href: '/admin/settings', label: 'Settings', icon: Settings2 },
 ];
 
 export default function AdminSidebar() {
