@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -11,7 +11,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
-import { menuApi, MenuCategory, Plate } from '@/lib/publicService.Api';
+import { menuApi, MenuCategory, Plate } from '@/lib/publicServiceApi';
 
 // ─── Auth-gate toast ──────────────────────────────────────────────────────────
 function AuthNotice({ onClose, onLogin }: { onClose: () => void; onLogin: () => void }) {
@@ -180,13 +180,14 @@ function PlateCard({
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function MenuClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [categories, setCategories] = useState<MenuCategory[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState<'all' | number>('all');
-  const [search, setSearch]                 = useState('');
+  const [search, setSearch] = useState('');
 
   const [showAuthNotice, setShowAuthNotice] = useState(false);
   const authTimer = useRef<NodeJS.Timeout | null>(null);
@@ -207,26 +208,28 @@ export default function MenuClient() {
 
   useEffect(() => { fetchMenu(); }, [fetchMenu]);
 
+  // ── Apply ?category= query param on load ──────────────────────────────────
+  useEffect(() => {
+    const catParam = searchParams.get('category');
+    if (catParam) {
+      const id = parseInt(catParam, 10);
+      if (!isNaN(id)) setActiveCategory(id);
+    }
+  }, [searchParams]);
+
   // ── Client-side search + category filter ─────────────────────────────────
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     return categories
       .map(cat => {
-        // Keep plates that match by name or short_desc
         const plates = cat.plates.filter(p =>
           !q ||
           p.name.toLowerCase().includes(q) ||
           p.short_desc.toLowerCase().includes(q),
         );
-
-        // Also include entire category if category name matches
         const catMatch = q && cat.name.toLowerCase().includes(q);
-
-        return {
-          ...cat,
-          plates: catMatch ? cat.plates : plates,
-        };
+        return { ...cat, plates: catMatch ? cat.plates : plates };
       })
       .filter(cat => {
         if (activeCategory !== 'all' && cat.id !== activeCategory) return false;
@@ -235,7 +238,7 @@ export default function MenuClient() {
   }, [categories, search, activeCategory]);
 
   const totalVisible = filtered.reduce((s, c) => s + c.plates.length, 0);
-  const totalAll     = categories.reduce((s, c) => s + c.plates.length, 0);
+  const totalAll = categories.reduce((s, c) => s + c.plates.length, 0);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   const handleAuthRequired = useCallback(() => {
@@ -245,23 +248,23 @@ export default function MenuClient() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="pt-16 min-h-screen bg-gray-50 dark:bg-gray-950">
 
       {/* ── Hero ── */}
-      <div className="relative bg-gray-800 text-white pb-24 pt-36 text-center overflow-hidden">
+      <section className="relative bg-gray-800 text-white pb-24 pt-36 text-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-20"
           style={{ backgroundImage: "url('/imgs/menu.jpg')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-gray-950/60 via-gray-950/40 to-gray-950/80" />
         <div className="relative z-10">
-          <p className="text-brand-400 uppercase tracking-widest text-sm mb-3 font-medium">Our Offerings</p>
+          <p className="text-amber-400 uppercase tracking-widest text-sm mb-3 font-medium">Our Offerings</p>
           <h1 className="font-display text-4xl md:text-6xl font-bold mb-4">The Menu</h1>
           <p className="text-gray-300 text-base max-w-md mx-auto">
             Discover our authentic Moroccan dishes, crafted with tradition and passion.
           </p>
         </div>
-      </div>
+      </section>
 
       {/* ── Sticky toolbar ── */}
       <div className="sticky top-16 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
@@ -332,14 +335,12 @@ export default function MenuClient() {
       {/* ── Content ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-        {/* Loading skeletons */}
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
 
-        {/* Error */}
         {!loading && error && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center">
@@ -355,7 +356,6 @@ export default function MenuClient() {
           </div>
         )}
 
-        {/* Empty state */}
         {!loading && !error && totalVisible === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center">
@@ -372,7 +372,6 @@ export default function MenuClient() {
           </div>
         )}
 
-        {/* Plates grouped by category */}
         {!loading && !error && totalVisible > 0 && (
           <div className="space-y-12">
             {filtered.map(cat => (
@@ -407,7 +406,6 @@ export default function MenuClient() {
         )}
       </div>
 
-      {/* Auth notice toast */}
       {showAuthNotice && (
         <AuthNotice
           onClose={() => setShowAuthNotice(false)}

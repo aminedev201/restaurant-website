@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Plate } from '@/lib/publicService.Api';
+import { Plate } from '@/lib/publicServiceApi';
 
 export const STORAGE_KEY = 'restaurant_cart';
 
@@ -49,12 +49,12 @@ function loadCart(): CartItem[] {
 function saveCart(items: CartItem[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {}
+  } catch { }
 }
 
 // ── Provider ───────────────────────────────────────────────────────────────────
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems]       = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -87,12 +87,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try { localStorage.removeItem(STORAGE_KEY); } catch { }
   }, []);
 
   const total = items.reduce((s, i) => {
     if (!i?.plate?.price) return s;
-    const discount    = i.plate.discount ?? 0;
+    const discount = i.plate.discount ?? 0;
     const effectivePrice = discount > 0
       ? i.plate.price * (1 - discount / 100)
       : i.plate.price;

@@ -17,7 +17,7 @@ api.interceptors.response.use(
   err => {
     if (typeof window !== 'undefined' && err.response?.status === 401) {
       Cookies.remove('auth_token');
-      window.location.href = '/login';
+      // window.location.href = '/login';
     }
     return Promise.reject(err);
   }

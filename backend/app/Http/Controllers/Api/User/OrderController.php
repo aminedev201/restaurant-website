@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 
@@ -120,9 +121,11 @@ class OrderController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
+            Log::error('Order store failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
             return response()->json([
                 'status'  => false,
-                'message' => 'Failed to place order. Please try again.',
+                'message' => app()->isLocal() ? $e->getMessage() : 'Failed to place order. Please try again.',
                 'data'    => null,
             ], 500);
         }
@@ -136,7 +139,7 @@ class OrderController extends Controller
     public function index(): JsonResponse
     {
         $orders = Order::where('user_id', Auth::id())
-            ->with('plates')
+            ->with(['plates.plate'])
             ->latest()
             ->get();
 
@@ -155,7 +158,7 @@ class OrderController extends Controller
     public function show(int $id): JsonResponse
     {
         $order = Order::where('user_id', Auth::id())
-            ->with('plates')
+            ->with(['plates.plate'])
             ->find($id);
 
         if (! $order) {

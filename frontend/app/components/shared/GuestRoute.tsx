@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import GuestLoader from './GuestLoader';
 
 export default function GuestRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -15,11 +16,7 @@ export default function GuestRoute({ children }: { children: React.ReactNode }) 
     }
   }, [isAuthenticated, isLoading, user, router]);
 
-  if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
-      <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (isLoading) return <GuestLoader />;
 
   if (isAuthenticated) return null;
   return <>{children}</>;

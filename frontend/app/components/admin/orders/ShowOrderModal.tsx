@@ -2,7 +2,8 @@
 
 // components/admin/orders/ShowOrderModal.tsx
 
-import { CreditCard, Truck, X } from 'lucide-react';
+import Image from 'next/image';
+import { CreditCard, Truck, X, Package } from 'lucide-react';
 import { Order } from '@/lib/adminServiceApi';
 import { ORDER_STATUSES, PAYMENT_STATUSES } from './orderConstants';
 import StatusDropdown from './StatusDropdown';
@@ -117,17 +118,33 @@ export default function ShowOrderModal({
             <div className="space-y-2">
               {order.order_plates.map((p, i) => (
                 <div key={i} className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-                  <span className="w-6 h-6 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-xs font-bold rounded-lg flex items-center justify-center shrink-0">
-                    {p.quantity}
-                  </span>
+
+                  {/* Plate image or fallback */}
+                  <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+                    {p.plate?.image_url ? (
+                      <Image
+                        src={p.plate.image_url}
+                        alt={p.plate_name}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package size={14} className="text-brand-400" />
+                    )}
+                  </div>
+
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.plate_name}</p>
                     {p.category_name && (
                       <p className="text-xs text-gray-400">{p.category_name}</p>
                     )}
                   </div>
+
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">MAD {p.total.toFixed(2)}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      ×{p.quantity} · MAD {p.total.toFixed(2)}
+                    </p>
                     {p.discount > 0 && (
                       <p className="text-xs text-red-400">-{p.discount}% off</p>
                     )}

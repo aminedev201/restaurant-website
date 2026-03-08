@@ -15,7 +15,7 @@ class OrderController extends Controller
     {
         return Order::with([
             'user:id,fullname,email,phone',
-            'orderPlates',
+            'orderPlates.plate',
         ]);
     }
 
@@ -63,7 +63,7 @@ class OrderController extends Controller
     {
         $order->load([
             'user:id,fullname,email,phone',
-            'orderPlates',
+            'orderPlates.plate',
         ]);
 
         return response()->json([
@@ -91,7 +91,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order status updated successfully.',
-            'data'    => $order->fresh(['user:id,fullname,email,phone', 'orderPlates']),
+            'data'    => $order->fresh(['user:id,fullname,email,phone', 'orderPlates.plate']),
         ]);
     }
 
@@ -113,7 +113,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Payment status updated successfully.',
-            'data'    => $order->fresh(['user:id,fullname,email,phone', 'orderPlates']),
+            'data'    => $order->fresh(['user:id,fullname,email,phone', 'orderPlates.plate']),
         ]);
     }
 

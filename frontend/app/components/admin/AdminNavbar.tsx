@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, User as UserIcon, KeyRound, LogOut, ChevronDown } from 'lucide-react';
+import { Bell, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { getInitials } from '@/lib/utils';
 
-interface Props { title?: string }
 
-export default function AdminNavbar({ title = 'Dashboard' }: Props) {
+export default function AdminNavbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -41,17 +40,7 @@ export default function AdminNavbar({ title = 'Dashboard' }: Props) {
 
   return (
     <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-6 gap-4">
-      <h1 className="font-display font-semibold text-gray-800 dark:text-white text-lg">{title}</h1>
-
-      {/* Search */}
-      <div className="flex-1 max-w-xs ml-4 hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
-        <Search size={15} className="text-gray-400" />
-        <input
-          placeholder="Search..."
-          className="bg-transparent text-sm outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 w-full"
-        />
-      </div>
-
+      
       <div className="flex-1" />
 
       <ThemeToggle />
@@ -116,8 +105,21 @@ export default function AdminNavbar({ title = 'Dashboard' }: Props) {
               </button>
             </div>
 
-            {/* Divider + Logout */}
-            <div className="p-1.5 border-t border-gray-100 dark:border-gray-800">
+            {/* Divider + Visit Site + Logout */}
+            <div className="p-1.5 border-t border-gray-100 dark:border-gray-800 space-y-0.5">
+              <button
+                onClick={() => navigate('/')}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+              >
+                <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                    <path d="M2 12h20" />
+                  </svg>
+                </div>
+                Visit Site
+              </button>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"

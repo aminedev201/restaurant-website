@@ -5,7 +5,9 @@ import Cookies from 'js-cookie';
 import { User, AuthState, LoginCredentials, RegisterData, ApiResponse } from '@/types';
 import { secureSet, secureGet, secureRemove } from '@/lib/encryption';
 import api from '@/lib/api';
-import { STORAGE_KEY, useCart } from './CartContext';
+import { useCart } from './CartContext';
+import { profileApi as userProfileApi } from '@/lib/userServiceApi';
+import { profileApi as adminProfileApi } from '@/lib/adminServiceApi';
 
 interface AuthContextType extends AuthState {
   login: (c: LoginCredentials) => Promise<ApiResponse<{ user: User; access_token: string }>>;
@@ -55,27 +57,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data;
   }, []);
 
-  const logout = useCallback(async () => {
+ const logout = useCallback(async () => {
     try { await api.post('/logout'); } catch {}
     Cookies.remove('auth_token');
     secureRemove('user_info');
     secureRemove('admin_info');
     // Clear cart data on logout so it doesn't persist across accounts
     clearCart();
-  }, []);
+    setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
+  }, [clearCart]);
 
   // ── Re-fetches the authenticated user from the API and updates state + storage ──
-  const refreshUser = useCallback(async () => {
-    try {
-      const { data } = await api.get<ApiResponse<User>>('/admin/profile');
-      if (data.success && data.data) {
-        const user = data.data;
-        const storageKey = user.role === 'admin' ? 'admin_info' : 'user_info';
-        await secureSet(storageKey, user);
-        setState(s => ({ ...s, user }));
-      }
-    } catch {}
-  }, []);
+ const refreshUser = useCallback(async () => {
+  try {
+    const isAdmin = state.user?.role === 'admin';
+    const data = isAdmin
+      ? await adminProfileApi.get()
+      : await userProfileApi.get();
+    if (data.success && data.data) {
+      const user = data.data;
+      const storageKey = user.role === 'admin' ? 'admin_info' : 'user_info';
+      await secureSet(storageKey, user);
+      setState(s => ({ ...s, user }));
+    }
+  } catch {}
+}, [state.user?.role]);
 
   const forgotPassword = useCallback(async (email: string) => {
     const { data } = await api.post<ApiResponse<null>>('/forgot-password', { email });

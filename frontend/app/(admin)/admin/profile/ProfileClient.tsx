@@ -63,7 +63,7 @@ export default function ProfileClient() {
     const [pendingFile, setPendingFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    if (!user) return null;
+    if (!user || user.role != 'admin') return null;
 
     const initials = user.fullname
         .split(' ')

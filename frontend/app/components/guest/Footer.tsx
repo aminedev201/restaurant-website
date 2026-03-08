@@ -6,7 +6,7 @@ import {
   ChefHat, MapPin, Phone, Mail,
   Instagram, Facebook, Twitter, Youtube, MessageCircle,
 } from 'lucide-react';
-import { Company, companyApi, WorkingDay } from '@/lib/publicService.Api';
+import { Company, companyApi, WorkingDay } from '@/lib/publicServiceApi';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -283,8 +283,14 @@ export default function Footer() {
             <p>© {new Date().getFullYear()} {company?.name ?? 'Restaurant'} Restaurant. All rights reserved.</p>
           )}
           <div className="flex gap-4">
-            <a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-gray-400 transition-colors">Terms of Service</a>
+            <a 
+              href="https://amine-fakkar--aminefakkar743.replit.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-400 transition-colors"
+            >
+              Created By Amine Fakkar
+            </a>          
           </div>
         </div>
       </div>

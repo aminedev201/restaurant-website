@@ -130,6 +130,7 @@ export interface OrderPlate {
   discount: number;
   quantity: number;
   total: number;
+  plate: { image_url: string | null } | null; 
 }
 
 export interface OrderUser {
@@ -162,8 +163,121 @@ export interface Settings {
   updated_at: string;
 }
 
-export interface ApiResponse<T> {
+export interface SocialMedia {
+  facebook?:  string | null;
+  instagram?: string | null;
+  twitter?:   string | null;
+  youtube?:   string | null;
+  linkedin?:  string | null;
+}
+
+export interface Chef {
+  id:           number;
+  fullname:     string;
+  position:     string;
+  image_path:   string;
+  image_url:    string;
+  short_desc:   string | null;
+  social_media: SocialMedia | null;
+  status:       boolean;
+  created_at:   string;
+  updated_at:   string;
+}
+
+export interface AdminTestimonial {
+  id: number;
+  rating: number;
+  comment: string;
+  status: boolean;
+  created_at: string;
+  user: {
+    id: number;
+    fullname: string;
+    email: string;
+    avatar_url: string | null;
+  };
+}
+
+export interface DayRevenue {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface DayUsers {
+  date: string;
+  count: number;
+}
+
+export interface TopPlate {
+  name: string;
+  total_quantity: number;
+  total_revenue: number;
+}
+
+export interface TopCategory {
+  id: number;
+  name: string;
+  plates_count: number;
+}
+
+export interface RecentOrder {
+  id: number;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  final_total: number;
+  created_at: string;
+  user: { fullname: string; email: string } | null;
+}
+
+export interface RecentReservation {
+  id: number;
+  date: string;
+  time: string;
+  guests: number;
+  status: string;
+  created_at: string;
+  user: { fullname: string; email: string } | null;
+}
+
+export interface DashboardStats {
+  // Summary
+  total_users: number;
+  total_orders: number;
+  total_revenue: number;
+  total_plates: number;
+  total_categories: number;
+  total_chefs: number;
+  total_reservations: number;
+  unread_messages: number;
+  pending_testimonials: number;
+
+  // Charts
+  orders_by_status: Record<string, number>;
+  orders_by_payment_status: Record<string, number>;
+  revenue_last_7_days: DayRevenue[];
+  revenue_last_30_days: DayRevenue[];
+  new_users_last_7_days: DayUsers[];
+  reservations_by_status: Record<string, number>;
+  plates_by_status: { active: number; inactive: number };
+  payment_methods: Record<string, number>;
+
+  // Tables
+  top_plates: TopPlate[];
+  top_categories: TopCategory[];
+  recent_orders: RecentOrder[];
+  recent_reservations: RecentReservation[];
+}
+
+export interface StatsApiResponse {
   success: boolean;
+  data: DashboardStats;
+}
+
+export interface ApiResponse<T> {
+  status: boolean;
+  success:boolean;
   message: string;
   data: T;
 }
@@ -460,4 +574,99 @@ export const settingsAdminApi = {
   /** POST /admin/settings */
   update: (shipping: number) =>
     api.post<ApiResponse<Settings>>('/admin/settings', { shipping }).then(r => r.data),
+};
+
+// ─── Chef endpoints ───────────────────────────────────────────────────────
+
+export const chefApi = {
+  /** GET /admin/chefs */
+  getAll: () =>
+    api.get<ApiResponse<Chef[]>>('/admin/chefs').then(r => r.data),
+
+  /** GET /admin/chefs/:id */
+  getOne: (id: number) =>
+    api.get<ApiResponse<Chef>>(`/admin/chefs/${id}`).then(r => r.data),
+
+  /** POST /admin/chefs (multipart/form-data) */
+  create: (formData: FormData) =>
+    api.post<ApiResponse<Chef>>('/admin/chefs', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
+
+  /** POST /admin/chefs/:id (_method=PUT) */
+  update: (id: number, formData: FormData) => {
+    formData.append('_method', 'PUT');
+    return api.post<ApiResponse<Chef>>(`/admin/chefs/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
+
+  /** DELETE /admin/chefs/:id */
+  delete: (id: number) =>
+    api.delete<ApiResponse<null>>(`/admin/chefs/${id}`).then(r => r.data),
+
+  /** DELETE /admin/chefs/all */
+  deleteAll: () =>
+    api.delete<ApiResponse<null>>('/admin/chefs/all').then(r => r.data),
+
+  /** DELETE /admin/chefs/selected */
+  deleteSelected: (ids: number[]) =>
+    api.delete<ApiResponse<{ deleted_count: number }>>('/admin/chefs/selected', {
+      data: { ids },
+    }).then(r => r.data),
+};
+
+
+export interface Testimonial {
+  id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+  user: {
+    id: number;
+    fullname: string;
+    avatar_url: string | null;
+  };
+}
+
+export const testimonialsApi = {
+  /** GET /public/testimonials — last 9 approved */
+  getAll: () =>
+    api.get<ApiResponse<Testimonial[]>>('/public/testimonials').then(r => r.data),
+
+  /** POST /user/testimonials — authenticated user submits review */
+  store: (payload: { rating: number; comment: string }) =>
+    api.post<ApiResponse<Testimonial>>('/user/testimonials', payload).then(r => r.data),
+};
+
+export const testimonialAdminApi = {
+  /** GET /admin/testimonials */
+  getAll: () =>
+    api.get<ApiResponse<AdminTestimonial[]>>('/admin/testimonials').then(r => r.data),
+
+  /** PATCH /admin/testimonials/:id/status */
+  updateStatus: (id: number, status: boolean) =>
+    api.patch<ApiResponse<AdminTestimonial>>(`/admin/testimonials/${id}/status`, { status }).then(r => r.data),
+
+  /** DELETE /admin/testimonials/:id */
+  delete: (id: number) =>
+    api.delete<ApiResponse<null>>(`/admin/testimonials/${id}`).then(r => r.data),
+
+  /** DELETE /admin/testimonials/all */
+  deleteAll: () =>
+    api.delete<ApiResponse<null>>('/admin/testimonials/all').then(r => r.data),
+
+  /** DELETE /admin/testimonials/selected */
+  deleteSelected: (ids: number[]) =>
+    api.delete<ApiResponse<{ deleted_count: number }>>('/admin/testimonials/selected', {
+      data: { ids },
+    }).then(r => r.data),
+};
+
+// ─── Stats Endpoints ───────────────────────────────────────────────────────────────────
+
+export const statsApi = {
+  /** GET /admin/stats */
+  get: () =>
+    api.get<StatsApiResponse>('/admin/stats').then(r => r.data),
 };

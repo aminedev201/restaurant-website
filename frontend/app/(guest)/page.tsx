@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
-import HomeHero from '@/components/guest/HomeHero';
-import HomeFeatured from '@/components/guest/HomeFeatured';
-import HomeBooking from '@/components/guest/HomeBooking';
+import HomeHero         from '@/components/guest/HomeHero';
+import HomeFeatured     from '@/components/guest/HomeFeatured';
+import HomeChefs        from '@/components/guest/HomeChefs';
 import HomeTestimonials from '@/components/guest/HomeTestimonials';
+import HomeCategories from '@/components/guest/HomeCategories';
+import HomeReservation from '@/components/guest/HomeReservation';
+import HomeContact from '@/components/guest/HomeContact';
 
 export const metadata: Metadata = {
-  title: 'La Maison – Fine Dining Restaurant',
+  title: 'Fine Dining Restaurant',
   description: 'Experience exquisite Mediterranean cuisine in the heart of Rabat. Book your table online.',
   openGraph: {
-    title: 'La Maison Restaurant',
+    title: 'Restaurant',
     description: 'Fine dining in Rabat — book your table online.',
   },
 };
@@ -18,8 +21,11 @@ export default function HomePage() {
     <>
       <HomeHero />
       <HomeFeatured />
-      <HomeBooking />
+      <HomeCategories />
+      <HomeChefs />
+      <HomeReservation />
       <HomeTestimonials />
+      <HomeContact />
     </>
   );
 }

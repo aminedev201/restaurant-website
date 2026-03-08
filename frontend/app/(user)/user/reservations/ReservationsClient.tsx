@@ -1,60 +1,300 @@
 'use client';
 
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { CalendarCheck, Plus, Users, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
+import {
+  Search, RefreshCw, AlertCircle, ChevronLeft, ChevronRight,
+  ArrowUp, ArrowDown, ChevronsUpDown, Calendar, Clock, Users, Plus,
+} from 'lucide-react';
+import { reservationApi, Reservation } from '@/lib/userServiceApi';
+import ShowReservationModal, { statusBadge, fmtDate, fmtTime } from '@/components/user/reservations/ShowReservationModal';
 
-const reservations = [
-  { id: 1, date: 'March 5, 2026', time: '20:00', guests: 2, status: 'confirmed', table: 4 },
-  { id: 2, date: 'February 14, 2026', time: '19:30', guests: 4, status: 'completed', table: 7 },
-  { id: 3, date: 'January 22, 2026', time: '13:00', guests: 2, status: 'completed', table: 2 },
-  { id: 4, date: 'January 1, 2026', time: '20:30', guests: 6, status: 'cancelled', table: 10 },
-];
+type SortKey = 'date' | 'created_at' | 'guests';
+type SortDir = 'asc' | 'desc';
+type StatusFilter = 'all' | 'pending' | 'confirmed' | 'canceled';
+const PER_PAGE_OPTIONS = [5, 10, 25, 50] as const;
 
-const statusStyle = (s: string) => ({
-  confirmed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-  completed: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
-  cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  pending: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-}[s] ?? '');
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ChevronsUpDown size={13} className="text-gray-300 dark:text-gray-600 ml-1 inline" />;
+  return sortDir === 'asc'
+    ? <ArrowUp size={13} className="text-brand-500 ml-1 inline" />
+    : <ArrowDown size={13} className="text-brand-500 ml-1 inline" />;
+}
 
-export default function ReservationsClient() {
+export default function ReservationClient() {
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sortKey, setSortKey]           = useState<SortKey>('date');
+  const [sortDir, setSortDir]           = useState<SortDir>('desc');
+  const [page, setPage]                 = useState(1);
+  const [perPage, setPerPage]           = useState<number>(5);
+  const [showTarget, setShowTarget]     = useState<Reservation | null>(null);
+  const [cancelling, setCancelling]     = useState(false);
+
+  const fetchReservations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await reservationApi.getMyReservations();
+      setReservations(res.data);
+    } catch {
+      toast.error('Failed to load reservations.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchReservations(); }, [fetchReservations]);
+
+  const processed = useMemo(() => {
+    let data = [...reservations];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter(r =>
+        r.date.includes(q) ||
+        (r.special_requests ?? '').toLowerCase().includes(q) ||
+        r.status.includes(q)
+      );
+    }
+    if (statusFilter !== 'all') data = data.filter(r => r.status === statusFilter);
+    data.sort((a, b) => {
+      const cmp = String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return data;
+  }, [reservations, search, statusFilter, sortKey, sortDir]);
+
+  const totalPages = Math.ceil(processed.length / perPage);
+  const pageItems  = processed.slice((page - 1) * perPage, page * perPage);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const pageNumbers = useMemo(() => {
+    const nums: (number | '...')[] = [];
+    if (totalPages <= 5) { for (let i = 1; i <= totalPages; i++) nums.push(i); }
+    else if (page <= 3) nums.push(1, 2, 3, 4, '...', totalPages);
+    else if (page >= totalPages - 2) nums.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    else nums.push(1, '...', page - 1, page, page + 1, '...', totalPages);
+    return nums;
+  }, [page, totalPages]);
+
+  const handleCancel = async (reservation: Reservation) => {
+    setCancelling(true);
+    try {
+      await reservationApi.cancel(reservation.id);
+      toast.success('Reservation cancelled.');
+      setShowTarget(null);
+      fetchReservations();
+    } catch {
+      toast.error('Failed to cancel reservation.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <div className="">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-white">My Reservations</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{reservations.length} total reservations</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Reservations</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{reservations.length} total reservations</p>
         </div>
-        <Link href="/booking" className="btn-primary">
-          <Plus size={16} /> New Reservation
+      </div>
+
+      {/* New Reservation link — right-aligned, between header and filters */}
+      <div className="flex justify-end mt-2">
+        <Link href="/reservation"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition-colors">
+          <Plus size={15} />
+          New Reservation
         </Link>
       </div>
 
-      <div className="space-y-4">
-        {reservations.map(r => (
-          <div key={r.id} className="card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-12 h-12 bg-brand-100 dark:bg-brand-900/30 rounded-xl flex items-center justify-center shrink-0">
-              <CalendarCheck size={20} className="text-brand-600 dark:text-brand-400" />
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white">{r.date}</h3>
-                <span className={`badge capitalize ${statusStyle(r.status)}`}>{r.status}</span>
-              </div>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1"><Clock size={13} /> {r.time}</span>
-                <span className="flex items-center gap-1"><Users size={13} /> {r.guests} guests</span>
-                <span>Table #{r.table}</span>
-              </div>
-            </div>
-            {r.status === 'confirmed' && (
-              <button className="px-4 py-2 text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                Cancel
-              </button>
-            )}
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-2 my-2">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" placeholder="Search by date or special requests..." value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-brand-400 dark:focus:border-brand-500 transition-colors" />
           </div>
-        ))}
+
+          <div className="flex items-center gap-1 p-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0 flex-wrap">
+            {(['all', 'pending', 'confirmed', 'canceled'] as const).map(s => (
+              <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  statusFilter === s
+                    ? s === 'confirmed' ? 'bg-emerald-500 text-white shadow-sm'
+                    : s === 'canceled'  ? 'bg-red-500 text-white shadow-sm'
+                    : s === 'pending'   ? 'bg-amber-500 text-white shadow-sm'
+                    :                    'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow-sm'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Show</span>
+            <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white outline-none focus:border-brand-400 transition-colors">
+              {PER_PAGE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <button onClick={fetchReservations}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition-colors shrink-0">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <RefreshCw size={28} className="text-brand-500 animate-spin" />
+            <p className="text-sm text-gray-400">Loading reservations...</p>
+          </div>
+        ) : pageItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center">
+              <AlertCircle size={24} className="text-gray-400" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No reservations found</p>
+            {search && <p className="text-sm text-gray-400">Try adjusting your search query</p>}
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => toggleSort('date')}>
+                      Date <SortIcon col="date" sortKey={sortKey} sortDir={sortDir} />
+                    </th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Time</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hidden sm:table-cell" onClick={() => toggleSort('guests')}>
+                      Guests <SortIcon col="guests" sortKey={sortKey} sortDir={sortDir} />
+                    </th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">Special Requests</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell cursor-pointer select-none" onClick={() => toggleSort('created_at')}>
+                      Submitted <SortIcon col="created_at" sortKey={sortKey} sortDir={sortDir} />
+                    </th>
+                    <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
+                  {pageItems.map(r => {
+                    const badge = statusBadge(r.status);
+                    return (
+                      <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center shrink-0">
+                              <Calendar size={13} className="text-brand-500" />
+                            </div>
+                            <span className="font-medium text-gray-900 dark:text-white whitespace-nowrap">{fmtDate(r.date)}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={13} className="text-purple-400 shrink-0" />
+                            {fmtTime(r.time)}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 hidden sm:table-cell">
+                          <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+                            <Users size={13} className="text-blue-400 shrink-0" />
+                            {r.guests}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-lg text-xs font-semibold ${badge.cls}`}>
+                            {badge.icon} {badge.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 max-w-[200px] truncate text-gray-500 dark:text-gray-400 text-xs hidden md:table-cell">
+                          {r.special_requests ?? <span className="text-gray-300 dark:text-gray-600 italic">None</span>}
+                        </td>
+                        <td className="px-5 py-3.5 text-gray-400 text-xs hidden lg:table-cell whitespace-nowrap">
+                          {fmtDate(r.created_at)}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => setShowTarget(r)}
+                              className="px-3 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/30 text-xs font-medium transition-colors">
+                              View
+                            </button>
+                            {r.status === 'pending' && (
+                              <button onClick={() => handleCancel(r)}
+                                className="px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 text-xs font-medium transition-colors">
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-xs text-gray-400">
+                  Showing <span className="font-semibold text-gray-600 dark:text-gray-300">{(page - 1) * perPage + 1}–{Math.min(page * perPage, processed.length)}</span>{' '}
+                  of <span className="font-semibold text-gray-600 dark:text-gray-300">{processed.length}</span> reservations
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                      className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      <ChevronLeft size={15} />
+                    </button>
+                    {pageNumbers.map((n, i) =>
+                      n === '...' ? (
+                        <span key={`e-${i}`} className="px-2 text-gray-300 dark:text-gray-600 text-sm">…</span>
+                      ) : (
+                        <button key={n} onClick={() => setPage(n as number)}
+                          className={`min-w-[34px] h-[34px] px-2 rounded-xl text-sm font-medium transition-colors
+                            ${page === n ? 'bg-brand-500 text-white shadow-sm' : 'border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+                          {n}
+                        </button>
+                      )
+                    )}
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                      className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      <ShowReservationModal
+        open={!!showTarget}
+        reservation={showTarget}
+        onClose={() => setShowTarget(null)}
+        onCancel={handleCancel}
+        cancelling={cancelling}
+      />
     </div>
   );
 }

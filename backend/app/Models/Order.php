@@ -37,6 +37,10 @@ class Order extends Model
     {
         return $this->hasMany(OrderPlate::class);
     }
+    public function plates()
+    {
+        return $this->hasMany(OrderPlate::class);
+    }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 

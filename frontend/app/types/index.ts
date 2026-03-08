@@ -2,11 +2,12 @@ export interface User {
   id: number;
   fullname: string;
   email: string;
-  phone?: string;
-  avatar_url?: string;
+  email_verified_at: string | null;
+  phone: string;
+  role: 'user' | 'admin';
   status: boolean;
-  role: 'admin' | 'user';
-  email_verified_at?: string | null;
+  avatar_path: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }

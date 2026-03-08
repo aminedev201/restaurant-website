@@ -51,11 +51,12 @@ export default function EditProfileModal({ open, onClose, onSuccess }: Props) {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!fullname.trim())         errs.fullname = 'Full name is required.';
-    else if (fullname.length < 2) errs.fullname = 'Full name must be at least 2 characters.';
-    if (!email.trim())            errs.email = 'Email is required.';
+    if (!fullname.trim())                             errs.fullname = 'Full name is required.';
+    else if (fullname.trim().length < 2)              errs.fullname = 'Full name must be at least 2 characters.';
+    else if (!/^[a-zA-Z\s]+$/.test(fullname.trim())) errs.fullname = 'Full name must contain letters only.';
+    if (!email.trim())                                errs.email = 'Email is required.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Please enter a valid email.';
-    if (!phone.trim())            errs.phone = 'Phone number is required.';
+    if (!phone.trim())                                errs.phone = 'Phone number is required.';
     return errs;
   };
 

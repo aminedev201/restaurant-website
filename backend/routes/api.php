@@ -10,30 +10,31 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Auth\AuthController;
 
-use App\Http\Controllers\Api\{
-    CompanyController           as PublicCompanyController,
-    ContactMessageController    as PublicContactMessageController,
-    MenuController              as PublicMenuController,
-    SettingsController          as PublicSettingsController,
-};
+use App\Http\Controllers\Api\PublicController;
 
 use App\Http\Controllers\Api\Admin\{
     AdminController,
     CategoryController,
     CompanyController,
-    ContactMessageController    as AdminContactMessageController,
-    OrderController             as AdminOrderController,
     PlateController,
-    ProfileController,
+    UserController,
+    ChefsController             as AdminChefsController,
+    OrderController             as AdminOrderController,
+    ContactMessageController    as AdminContactMessageController,
+    ProfileController           as AdminProfileController,
     ReservationController       as AdminReservationController,
     SettingsController          as AdminSettingsController,
-    UserController,
+    TestimonialController       as AdminTestimonialController,
+    StatsController             as AdminStatsController,
 };
 
 use App\Http\Controllers\Api\User\{
+    StatsController             as UserStatsController,
+    ProfileController           as UserProfileController,
     FavoriteController          as UserFavoriteController,
     OrderController             as UserOrderController,
     ReservationController       as UserReservationController,
+    TestimonialController       as UserTestimonialController,
 };
 
 /*
@@ -43,15 +44,19 @@ use App\Http\Controllers\Api\User\{
 */
 
 Route::prefix('public')->group(function () {
-
-    Route::prefix('menu')->controller(PublicMenuController::class)->group(function () {
-        Route::get('/',     'getMenu');
-        Route::get('/{id}', 'getPlateDetails');
+    Route::controller(PublicController::class)->group(function () {
+        Route::prefix('menu')->group(function () {
+            Route::get('/',     'getMenu');
+            Route::get('/{id}', 'getPlateDetails');
+        });
+        Route::get('categories',    'getCategories');
+        Route::get('plates/latest', 'getLatestPlates');
+        Route::get('company',       'getCompanyInfo');
+        Route::post('contact',      'storeContactMessage');
+        Route::get('settings',      'showSettings');
+        Route::get('chefs',         'chefs');
+        Route::get('testimonials',  'testimonials');
     });
-
-    Route::get('company',  [PublicCompanyController::class,       'getCompanyInfo']);
-    Route::post('contact', [PublicContactMessageController::class, 'store']);
-    Route::get('settings', [PublicSettingsController::class,       'show']);
 });
 
 /*
@@ -86,7 +91,17 @@ Route::middleware(['auth:sanctum', 'verified', 'user.status'])->group(function (
     |----------------------------------------------------------------------
     */
 
-    Route::middleware('role:admin')->prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware('role:admin')->group(function () {
+        // Stats
+        Route::get('stats', [AdminStatsController::class, 'index']);
+
+        // Chefs
+        Route::controller(AdminChefsController::class)->prefix('chefs')->group(function () {
+            Route::delete('all',      'destroyAll');
+            Route::delete('selected', 'destroySelected');
+        });
+
+        Route::apiResource('chefs', AdminChefsController::class);
 
         // Settings
         Route::controller(AdminSettingsController::class)->prefix('settings')->group(function () {
@@ -129,12 +144,14 @@ Route::middleware(['auth:sanctum', 'verified', 'user.status'])->group(function (
         });
 
         // Profile
-        Route::controller(ProfileController::class)->prefix('profile')->group(function () {
+        Route::controller(AdminProfileController::class)->prefix('profile')->group(function () {
             Route::get('/',                 'show');
             Route::put('/',                 'update');
+            Route::delete('/',                 'destroy');
             Route::put('/change-password',  'changePassword');
             Route::patch('/change-avatar',  'changeAvatar');
             Route::delete('/delete-avatar', 'deleteAvatar');
+
         });
 
         // Company
@@ -170,6 +187,15 @@ Route::middleware(['auth:sanctum', 'verified', 'user.status'])->group(function (
             Route::patch('/{order}/status',         'updateStatus');
             Route::patch('/{order}/payment-status', 'updatePaymentStatus');
         });
+
+        // Testimonials
+        Route::prefix('testimonials')->controller(AdminTestimonialController::class)->group(function () {
+            Route::get('/',                  'index');
+            Route::patch('/{testimonial}/status', 'updateStatus');
+            Route::delete('/all',            'destroyAll');
+            Route::delete('/selected',       'destroySelected');
+            Route::delete('/{testimonial}',  'destroy');
+        });
     });
 
     /*
@@ -178,7 +204,16 @@ Route::middleware(['auth:sanctum', 'verified', 'user.status'])->group(function (
     |----------------------------------------------------------------------
     */
 
-    Route::middleware('role:user')->prefix('user')->group(function () {
+    Route::prefix('user')->middleware('role:user')->group(function () {
+
+        // Testimonials
+        Route::controller(UserTestimonialController::class)->prefix('testimonials')->group(function (){
+            Route::post('/', 'store');
+            Route::get('/mine', 'mine');
+        });
+
+        // Stats
+        Route::get('stats',[UserStatsController::class,'index']);
 
         // Reservations
         Route::controller(UserReservationController::class)->prefix('reservations')->group(function () {
@@ -200,5 +235,16 @@ Route::middleware(['auth:sanctum', 'verified', 'user.status'])->group(function (
             Route::get('/',                'index');
             Route::get('/{id}',            'show');
         });
+
+        // Profile
+        Route::controller(UserProfileController::class)->prefix('profile')->group(function () {
+            Route::get('/',                 'show');
+            Route::put('/',                 'update');
+            Route::delete('/',                 'destroy');
+            Route::put('/change-password',  'changePassword');
+            Route::patch('/change-avatar',  'changeAvatar');
+            Route::delete('/delete-avatar', 'deleteAvatar');
+        });
+
     });
 });

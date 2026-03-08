@@ -6,14 +6,17 @@ import { CartProvider } from '@/context/CartContext';
 import { Toaster } from 'react-hot-toast';
 import { FavoritesProvider } from './context/FavoritesContext';
 
+const appUrl = process.env.APP_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  // title: { default: 'Restaurant', template: '%s | La Maison' },
-  description: 'An intimate dining experience where tradition meets modern gastronomy.',
-  keywords: ['restaurant', 'fine dining', 'reservation', 'Rabat', 'La Maison'],
+  metadataBase: new URL(appUrl),
+  description:
+    "An intimate dining experience where tradition meets modern gastronomy.",
+  keywords: ["restaurant", "fine dining", "reservation", "Rabat", "La Maison"],
   openGraph: {
-    type: 'website',
-    siteName: 'La Maison Restaurant',
-    images: ['/og-image.jpg'],
+    type: "website",
+    siteName: "La Maison Restaurant",
+    images: ["/og-image.jpg"],
   },
 };
 

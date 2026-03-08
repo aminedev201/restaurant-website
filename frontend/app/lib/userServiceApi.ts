@@ -68,6 +68,7 @@ export interface OrderPlateItem {
   discount: number;
   quantity: number;
   total: number;
+  plate: { image_url: string | null } | null; 
 }
 
 export interface Order {
@@ -93,9 +94,67 @@ export interface PlaceOrderPayload {
   items: { plate_id: number; quantity: number }[];
 }
 
+export interface User {
+  id: number;
+  fullname: string;
+  email: string;
+  email_verified_at: string | null;
+  phone: string;
+  role: 'user' | 'admin';
+  status: boolean;
+  avatar_path: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Stats Types ──────────────────────────────────────────────────────────────
+// Add these types alongside the existing ones in userServiceApi.ts
+
+export interface UpcomingReservation {
+  date: string;
+  time: string;
+  guests: number;
+  status: 'pending' | 'confirmed';
+}
+
+export interface RecentReservation {
+  id: number;
+  date: string;
+  time: string;
+  guests: number;
+  status: string;
+  special_requests: string | null;
+}
+
+export interface DashboardStats {
+  reservations: {
+    total: number;
+    upcoming: UpcomingReservation | null;
+    recent: RecentReservation[];
+  };
+  orders: {
+    active: number;
+    total: number;
+    spent: number;
+  };
+}
+
+export interface Testimonial {
+  id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+  user: {
+    id: number;
+    fullname: string;
+    avatar_url: string | null;
+  };
+}
 
 export interface ApiResponse<T> {
   status: boolean;
+  success:boolean;
   message: string;
   data: T;
 }
@@ -116,7 +175,7 @@ export const reservationApi = {
     api.delete<ApiResponse<null>>(`/user/reservations/${id}`).then(r => r.data),
 };
 
-// ─── favorites Endpoints ───────────────────────────────────────────────
+// ─── Favorite Endpoints ───────────────────────────────────────────────
 
 export const favoritesApi = {
   /** GET /user/favorites — returns the authenticated user's favorite plates */
@@ -146,4 +205,59 @@ export const orderApi = {
   /** GET /user/orders/:id */
   getOne: (id: number) =>
     api.get<ApiResponse<Order>>(`/user/orders/${id}`).then(r => r.data),
+};
+
+// ─── Profile Endpoints ───────────────────────────────────────────────
+
+export const profileApi = {
+  /** GET /admin/profile */
+  get: () =>
+    api.get<ApiResponse<User>>('/user/profile').then(r => r.data),
+
+  /** POST /user/profile (_method=PUT multipart workaround) */
+  update: (formData: FormData) => {
+    formData.append('_method', 'PUT');
+    return api.post<ApiResponse<User>>('/user/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
+  /** POST /user/change-avatar (_method=PATCH multipart workaround) */
+  changeAvatar: (formData: FormData) => {
+    formData.append('_method', 'PATCH');
+    return api.post<ApiResponse<User>>('/user/profile/change-avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
+
+  /** PUT /user/profile/change-password */
+  changePassword: (current_password: string, password: string, password_confirmation: string) =>
+    api.put<ApiResponse<null>>('/user/profile/change-password', {
+      current_password,
+      password,
+      password_confirmation,
+    }).then(r => r.data),
+
+  /** DELETE /user/profile */
+  deleteAccount: () =>
+    api.delete<ApiResponse<null>>('/user/profile').then(r => r.data),
+  /** DELETE /user/profile/delete-avatar */
+  deleteAvatar: () =>
+    api.delete<ApiResponse<null>>('/user/profile/delete-avatar').then(r => r.data),
+};
+
+// ─── Stats Endpoint ───────────────────────────────────────────────────────────
+
+export const statsApi = {
+  /** GET /user/stats */
+  getDashboard: () =>
+    api.get<ApiResponse<DashboardStats>>('/user/stats').then(r => r.data),
+};
+
+// ─── Testimonials Endpoint ───────────────────────────────────────────────────────────
+export const testimonialsApi = {
+  /** POST /user/testimonials — authenticated user submits review */
+  store: (payload: { rating: number; comment: string }) =>
+    api.post<ApiResponse<Testimonial>>('/user/testimonials', payload).then(r => r.data),
+  mine: () =>
+    api.get<ApiResponse<{ exists: boolean }>>('/user/testimonials/mine').then(r => r.data),
 };

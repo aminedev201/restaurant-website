@@ -7,7 +7,7 @@ import { Menu, X, ShoppingCart, User, ChefHat, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
-import { Company, companyApi } from '@/lib/publicService.Api';
+import { Company, companyApi } from '@/lib/publicServiceApi';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 
 const navLinks = [
@@ -19,10 +19,10 @@ const navLinks = [
 ];
 
 export default function GuestNavbar() {
-  const [open, setOpen]         = useState(false);
+  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [company, setCompany]   = useState<Company | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuth();
